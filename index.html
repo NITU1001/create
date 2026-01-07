@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pattern Match - MindPlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #FFFDE7; /* Very soft pastel yellow */
+            color: #4B5563;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, .font-heading { font-family: 'Fredoka', sans-serif; }
+
+        /* Smooth Animations */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bounce { animation: bounce 0.5s cubic-bezier(0.36, 0, 0.66, -0.56); }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Card Styles */
+        .shape-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .shape-card:active { transform: scale(0.95); }
+        
+        .mystery-box {
+            background-image: repeating-linear-gradient(
+                45deg,
+                #F3F4F6,
+                #F3F4F6 10px,
+                #FFFFFF 10px,
+                #FFFFFF 20px
+            );
+            border: 2px dashed #D1D5DB;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 fade-in">
+
+    <!-- Header -->
+    <div class="w-full max-w-md flex justify-between items-center mb-8">
+        <!-- Spacer to maintain alignment -->
+        <div class="w-10"></div>
+        
+        <div class="text-center">
+            <h1 class="text-3xl font-bold text-yellow-600 mb-1 leading-none">Patterns</h1>
+            <p class="text-yellow-700/60 text-xs font-bold tracking-widest uppercase">What comes next?</p>
+        </div>
+
+        <div class="bg-white/50 px-3 py-1 rounded-xl text-yellow-700 font-bold border border-yellow-100/50">
+            <span id="score">0</span>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="w-full max-w-md flex-1 flex flex-col justify-center">
+        
+        <!-- Pattern Display -->
+        <div class="bg-white/40 backdrop-blur-sm rounded-3xl p-6 mb-8 border border-white/50 shadow-sm">
+            <div id="pattern-container" class="flex justify-between items-center gap-2">
+                <!-- Pattern items injected here -->
+            </div>
+        </div>
+
+        <!-- Options Display -->
+        <div class="text-center mb-4">
+            <p class="text-yellow-800/60 font-bold text-sm mb-4 animate-pulse">Choose the matching shape</p>
+        </div>
+        
+        <div id="options-container" class="grid grid-cols-3 gap-4">
+            <!-- Options injected here -->
+        </div>
+
+    </div>
+
+    <!-- Win/Level Up Modal -->
+    <div id="feedback-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div class="bg-white/90 backdrop-blur rounded-full px-8 py-4 shadow-xl transform scale-0 transition-transform duration-300">
+            <span class="text-4xl">🌟</span>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Config ---
+        const shapes = [
+            { id: 'circle', svg: '<circle cx="12" cy="12" r="10" />' },
+            { id: 'square', svg: '<rect x="3" y="3" width="18" height="18" rx="4" />' },
+            { id: 'triangle', svg: '<path d="M12 2L2 22h20L12 2z" stroke-linejoin="round" />' },
+            { id: 'star', svg: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke-linejoin="round" />' },
+            { id: 'heart', svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />' },
+            { id: 'diamond', svg: '<path d="M12 2L2 12l10 10 10-10L12 2z" stroke-linejoin="round" />' }
+        ];
+
+        // Pastel Colors (Tailwind-ish hexes)
+        const colors = [
+            '#F87171', // Red
+            '#60A5FA', // Blue
+            '#34D399', // Green
+            '#A78BFA', // Purple
+            '#FBBF24', // Yellow
+            '#FB923C'  // Orange
+        ];
+
+        let currentPattern = [];
+        let correctAnswer = null;
+        let score = 0;
+        let isProcessing = false;
+
+        const patternContainer = document.getElementById('pattern-container');
+        const optionsContainer = document.getElementById('options-container');
+        const scoreEl = document.getElementById('score');
+        const feedbackModal = document.getElementById('feedback-modal');
+
+        // --- Logic ---
+
+        function startGame() {
+            generateLevel();
+        }
+
+        function generateLevel() {
+            patternContainer.innerHTML = '';
+            optionsContainer.innerHTML = '';
+            
+            // Randomly choose pattern type: ABAB, AABB, or ABC
+            const patternType = Math.random() > 0.5 ? 'ABAB' : (Math.random() > 0.5 ? 'ABC' : 'AABB');
+            
+            // Pick random shapes/colors for A, B, C
+            const shapeA = getRandomShape();
+            const shapeB = getRandomShape();
+            const shapeC = getRandomShape(); // Only used for ABC
+
+            let sequence = [];
+            
+            if (patternType === 'ABAB') {
+                sequence = [shapeA, shapeB, shapeA, shapeB];
+            } else if (patternType === 'AABB') {
+                sequence = [shapeA, shapeA, shapeB, shapeB];
+            } else {
+                sequence = [shapeA, shapeB, shapeC];
+            }
+
+            // The last item is the one we hide
+            correctAnswer = sequence[sequence.length - 1];
+            const displaySequence = sequence.slice(0, -1);
+
+            // Render Pattern
+            displaySequence.forEach(item => {
+                const el = createShapeElement(item, 'w-16 h-16 md:w-20 md:h-20');
+                patternContainer.appendChild(el);
+            });
+
+            // Render Mystery Box
+            const mysteryBox = document.createElement('div');
+            mysteryBox.className = 'mystery-box w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-gray-300 font-bold text-2xl';
+            mysteryBox.innerText = '?';
+            patternContainer.appendChild(mysteryBox);
+
+            // Generate Options (Correct + 2 Distractors)
+            const distractors = [
+                getRandomShape(),
+                getRandomShape()
+            ];
+            // Ensure distractors aren't the same as correct answer
+            while (distractors[0].shape.id === correctAnswer.shape.id && distractors[0].color === correctAnswer.color) {
+                distractors[0] = getRandomShape();
+            }
+
+            const options = [correctAnswer, ...distractors];
+            shuffleArray(options);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'shape-card flex items-center justify-center py-6 hover:bg-yellow-50 active:bg-yellow-100';
+                btn.innerHTML = getSvg(opt.shape, opt.color, 48);
+                btn.onclick = () => handleChoice(opt, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function getRandomShape() {
+            return {
+                shape: shapes[Math.floor(Math.random() * shapes.length)],
+                color: colors[Math.floor(Math.random() * colors.length)]
+            };
+        }
+
+        function createShapeElement(item, sizeClass) {
+            const div = document.createElement('div');
+            div.className = `shape-card flex items-center justify-center ${sizeClass}`;
+            div.innerHTML = getSvg(item.shape, item.color, 40); // Size inside SVG roughly
+            return div;
+        }
+
+        function getSvg(shape, color, size) {
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                ${shape.svg}
+            </svg>`;
+        }
+
+        function handleChoice(selection, btnElement) {
+            if (isProcessing) return;
+            
+            if (selection.shape.id === correctAnswer.shape.id && selection.color === correctAnswer.color) {
+                // Correct
+                isProcessing = true;
+                score += 10;
+                scoreEl.innerText = score;
+                
+                // Visual Feedback
+                btnElement.classList.add('ring-4', 'ring-green-400', 'ring-offset-2');
+                showFeedback('🌟');
+                
+                // Replace mystery box with correct shape
+                const mystery = document.querySelector('.mystery-box');
+                mystery.className = 'shape-card w-16 h-16 md:w-20 md:h-20 flex items-center justify-center bg-white bounce';
+                mystery.innerHTML = getSvg(correctAnswer.shape, correctAnswer.color, 40);
+
+                setTimeout(() => {
+                    isProcessing = false;
+                    generateLevel();
+                }, 1000);
+
+            } else {
+                // Incorrect
+                btnElement.classList.add('shake', 'bg-red-50');
+                setTimeout(() => btnElement.classList.remove('shake', 'bg-red-50'), 400);
+            }
+        }
+
+        function showFeedback(emoji) {
+            const modal = document.querySelector('#feedback-modal div');
+            modal.innerHTML = `<span class="text-4xl">${emoji}</span>`;
+            modal.parentElement.classList.remove('hidden');
+            // Pop in
+            requestAnimationFrame(() => {
+                modal.style.transform = 'scale(1)';
+            });
+            
+            setTimeout(() => {
+                modal.style.transform = 'scale(0)';
+                setTimeout(() => modal.parentElement.classList.add('hidden'), 300);
+            }, 800);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Init
+        startGame();
+
+    </script>
+</body>
+</html>
