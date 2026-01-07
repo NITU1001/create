@@ -59,36 +59,36 @@
 <body class="flex flex-col items-center justify-center min-h-screen p-4 fade-in">
 
     <!-- Header -->
-    <div class="w-full max-w-md flex justify-between items-center mb-8">
+    <div class="w-full max-w-lg md:max-w-3xl flex justify-between items-center mb-6 md:mb-10">
         <!-- Spacer to maintain alignment -->
         <div class="w-10"></div>
         
         <div class="text-center">
-            <h1 class="text-3xl font-bold text-yellow-600 mb-1 leading-none">Patterns</h1>
-            <p class="text-yellow-700/60 text-xs font-bold tracking-widest uppercase">What comes next?</p>
+            <h1 class="text-3xl md:text-5xl font-bold text-yellow-600 mb-1 leading-none">Patterns</h1>
+            <p class="text-yellow-700/60 text-xs md:text-sm font-bold tracking-widest uppercase">What comes next?</p>
         </div>
 
-        <div class="bg-white/50 px-3 py-1 rounded-xl text-yellow-700 font-bold border border-yellow-100/50">
+        <div class="bg-white/50 px-4 py-2 rounded-xl text-yellow-700 font-bold border border-yellow-100/50 text-lg md:text-xl min-w-[60px] text-center">
             <span id="score">0</span>
         </div>
     </div>
 
     <!-- Game Area -->
-    <div class="w-full max-w-md flex-1 flex flex-col justify-center">
+    <div class="w-full max-w-lg md:max-w-3xl flex-1 flex flex-col justify-center">
         
         <!-- Pattern Display -->
-        <div class="bg-white/40 backdrop-blur-sm rounded-3xl p-6 mb-8 border border-white/50 shadow-sm">
-            <div id="pattern-container" class="flex justify-between items-center gap-2">
+        <div class="bg-white/40 backdrop-blur-sm rounded-3xl p-4 md:p-8 mb-8 md:mb-12 border border-white/50 shadow-sm">
+            <div id="pattern-container" class="flex justify-between items-center gap-2 md:gap-4">
                 <!-- Pattern items injected here -->
             </div>
         </div>
 
         <!-- Options Display -->
-        <div class="text-center mb-4">
-            <p class="text-yellow-800/60 font-bold text-sm mb-4 animate-pulse">Choose the matching shape</p>
+        <div class="text-center mb-4 md:mb-6">
+            <p class="text-yellow-800/60 font-bold text-sm md:text-lg mb-2 animate-pulse">Choose the matching shape</p>
         </div>
         
-        <div id="options-container" class="grid grid-cols-3 gap-4">
+        <div id="options-container" class="grid grid-cols-3 gap-3 md:gap-6 px-2 md:px-12">
             <!-- Options injected here -->
         </div>
 
@@ -97,7 +97,7 @@
     <!-- Win/Level Up Modal -->
     <div id="feedback-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div class="bg-white/90 backdrop-blur rounded-full px-8 py-4 shadow-xl transform scale-0 transition-transform duration-300">
-            <span class="text-4xl">🌟</span>
+            <span class="text-4xl md:text-6xl">🌟</span>
         </div>
     </div>
 
@@ -166,13 +166,14 @@
 
             // Render Pattern
             displaySequence.forEach(item => {
-                const el = createShapeElement(item, 'w-16 h-16 md:w-20 md:h-20');
+                // Responsive sizes: Mobile (w-14) -> Tablet (md:w-20) -> Large Tablet/Desktop (lg:w-24)
+                const el = createShapeElement(item, 'w-14 h-14 md:w-20 md:h-20 lg:w-24 lg:h-24');
                 patternContainer.appendChild(el);
             });
 
-            // Render Mystery Box
+            // Render Mystery Box with responsive sizing
             const mysteryBox = document.createElement('div');
-            mysteryBox.className = 'mystery-box w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-gray-300 font-bold text-2xl';
+            mysteryBox.className = 'mystery-box w-14 h-14 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center text-gray-300 font-bold text-2xl md:text-4xl';
             mysteryBox.innerText = '?';
             patternContainer.appendChild(mysteryBox);
 
@@ -191,8 +192,9 @@
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = 'shape-card flex items-center justify-center py-6 hover:bg-yellow-50 active:bg-yellow-100';
-                btn.innerHTML = getSvg(opt.shape, opt.color, 48);
+                // Responsive aspect ratio and padding for easier tapping on touch devices
+                btn.className = 'shape-card aspect-square flex items-center justify-center p-3 md:p-6 hover:bg-yellow-50 active:bg-yellow-100 ring-4 ring-transparent focus:outline-none';
+                btn.innerHTML = getSvg(opt.shape, opt.color);
                 btn.onclick = () => handleChoice(opt, btn);
                 optionsContainer.appendChild(btn);
             });
@@ -207,13 +209,15 @@
 
         function createShapeElement(item, sizeClass) {
             const div = document.createElement('div');
-            div.className = `shape-card flex items-center justify-center ${sizeClass}`;
-            div.innerHTML = getSvg(item.shape, item.color, 40); // Size inside SVG roughly
+            // Added p-2 md:p-3 to give the shape some breathing room inside the card
+            div.className = `shape-card flex items-center justify-center p-2 md:p-3 ${sizeClass}`;
+            div.innerHTML = getSvg(item.shape, item.color);
             return div;
         }
 
-        function getSvg(shape, color, size) {
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        function getSvg(shape, color) {
+            // Using w-full h-full allows the SVG to scale with its parent container automatically
+            return `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="${color}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 ${shape.svg}
             </svg>`;
         }
@@ -228,13 +232,13 @@
                 scoreEl.innerText = score;
                 
                 // Visual Feedback
-                btnElement.classList.add('ring-4', 'ring-green-400', 'ring-offset-2');
+                btnElement.classList.add('ring-green-400', 'ring-offset-2');
                 showFeedback('🌟');
                 
-                // Replace mystery box with correct shape
+                // Replace mystery box with correct shape (using consistent responsive classes)
                 const mystery = document.querySelector('.mystery-box');
-                mystery.className = 'shape-card w-16 h-16 md:w-20 md:h-20 flex items-center justify-center bg-white bounce';
-                mystery.innerHTML = getSvg(correctAnswer.shape, correctAnswer.color, 40);
+                mystery.className = 'shape-card w-14 h-14 md:w-20 md:h-20 lg:w-24 lg:h-24 flex items-center justify-center bg-white bounce p-2 md:p-3';
+                mystery.innerHTML = getSvg(correctAnswer.shape, correctAnswer.color);
 
                 setTimeout(() => {
                     isProcessing = false;
@@ -250,7 +254,7 @@
 
         function showFeedback(emoji) {
             const modal = document.querySelector('#feedback-modal div');
-            modal.innerHTML = `<span class="text-4xl">${emoji}</span>`;
+            modal.innerHTML = `<span class="text-4xl md:text-6xl">${emoji}</span>`;
             modal.parentElement.classList.remove('hidden');
             // Pop in
             requestAnimationFrame(() => {
